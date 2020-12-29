@@ -40,15 +40,12 @@ def play_combat(_deck1, _deck2):
 def play_recursive_combat(_deck1, _deck2):
     history = []
     history_repeated = False
-    rounds = 0
     while both_decks_have_cards(_deck1, _deck2):
-        rounds += 1
         if (_deck1, _deck2) in history:
             history_repeated = True
             break
         else:
             history.append((_deck1.copy(), _deck2.copy()))
-
         card1, card2 = _deck1.pop(0), _deck2.pop(0)
         if len(_deck1) >= card1 and len(_deck2) >= card2:
             if player_one_won_recursive_subcombat(_deck1[:card1].copy(), _deck2[:card2].copy()):
