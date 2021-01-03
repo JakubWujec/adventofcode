@@ -8,6 +8,7 @@ with open((__file__.rstrip("code.py")+"input.txt"), 'r') as input_file:
 rules_input, examples_input = input.split('\n\n')
 PIPE = '|'
 RULES = dict()
+
 for line in rules_input.split('\n'):
     key, val = line.split(':')
     key = int(key)
@@ -33,11 +34,12 @@ RULES2 = copy.deepcopy(RULES)
 RULES2[8] = [[42], [42, 8]]
 RULES2[11] = [[42, 31], [42, 11, 31]]
 
-def z1(words):
+
+def count_matching_words(words, rules):
     counter = 0
     for word in words:
         stack = [0]
-        if word_matches_rules(word, stack, RULES):
+        if word_matches_rules(word, stack, rules):
             counter += 1
     return counter
 
@@ -69,16 +71,14 @@ def word_matches_rules(word, stack, rules):
                     return False
 
 
+def z1(words):
+    return count_matching_words(words, RULES)
+
+
 def z2(words):
-    counter = 0
-    for word in words:
-        stack = [0]
-        if word_matches_rules(word, stack, RULES2):
-            counter += 1
-    return counter
+    return count_matching_words(words, RULES2)
+
 
 print("Part One : "+ str(z1(examples)))
-
-
 
 print("Part Two : "+ str(z2(examples)))
