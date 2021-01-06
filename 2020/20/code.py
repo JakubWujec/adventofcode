@@ -29,13 +29,18 @@ class Tile:
     def bottom_border(self):
         return self.tile_data[-1]
 
-    # def borders(self):
-    #     return [self.top_border(), self.right_border(), self.bottom_border(), self.left_border()]
+    def remove_borders(self):
+        self.tile_data = self.tile_data[1:-1]
+        self.tile_data = list((map(lambda row: row[1:-1], self.tile_data)))
 
-    # def possible_borders(self):
-    #     return [self.top_border(), self.right_border(), self.bottom_border(), self.left_border()] + \
-    #            [self.top_border()[::-1], self.right_border()[::-1], self.bottom_border()[::-1],
-    #             self.left_border()[::-1]]
+    def dims(self):
+        return len(self.tile_data), len(self.tile_data[0])
+
+    def count(self, char):
+        count = 0
+        for row in self.tile_data:
+            count += row.count(char)
+        return count
 
     def __repr__(self):
         return str('Tile (id: ' + str(self.tid) + ' data:' + str(self.tile_data))
@@ -54,17 +59,6 @@ class Image:
 
     def remove_tile(self, tile: Tile):
         self.tiles.remove(tile)
-
-    # def pop_tile(self, index=None):
-    #     if index is not None:
-    #         return self.tiles.pop(index=index)
-    #     return self.tiles.pop()
-
-    # def set_tiles(self, tiles: [Tile]):
-    #     self.tiles = tiles
-
-    # def get_tiles(self) -> [Tile]:
-    #     return self.tiles
 
     def contains(self, tile: Tile):
         return tile in self.tiles
@@ -145,27 +139,33 @@ class Image:
                 self.tile_at(self.side_len - 1, 0),
                 self.tile_at(self.side_len - 1, self.side_len - 1)]
 
+    def remove_tiles_borders(self):
+        for tile in self.tiles:
+            tile.remove_borders()
+
+    @staticmethod
+    def concat_tiles(*tiles):
+        tiles_data = list(map(lambda t: t.tile_data, tiles))
+        return list(map(''.join, zip(*tiles_data)))
+
+    def with_removed_gaps(self):
+        with_removed_gaps = []
+        for i in range(self.side_len):
+            row_tiles = self.tiles[i * self.side_len: i * self.side_len + self.side_len]
+            merged_row_tile = Image.concat_tiles(*row_tiles)
+            with_removed_gaps += merged_row_tile
+        return with_removed_gaps
+
     def check(self) -> bool:
         if len(self.tiles) == self.side_len * self.side_len:
             return self.vertical_check() and self.horizontal_check()
         return False
 
-
-def find_uniques(data):
-    unique = []
-    seen = set()
-    for item in data:
-        if item in seen:
-            if item in unique:
-                unique.remove(item)
-        else:
-            seen.add(item)
-            unique.append(item)
-    return unique
+    def contains_monster(self, monster: [str]):
+        return False
 
 
 def solve_image(free_tiles: [Tile], assembled: Image, solutions: [Image]):
-    print(len(free_tiles))
     if assembled.check():
         solutions.append(assembled)
     else:
@@ -191,6 +191,13 @@ def solve_image(free_tiles: [Tile], assembled: Image, solutions: [Image]):
 with open((__file__.rstrip("code.py") + "input.txt"), 'r') as input_file:
     input = input_file.read()
 
+MONSTER = [
+    '                  # ',
+    '#    ##    ##    ###',
+    ' #  #  #  #  #  #   ',
+]
+MONSTER = list(map(lambda x: x.replace(' ', '.'), MONSTER))
+
 input = input.split('\n\n')
 tiles_dict = {}
 N = int(math.sqrt(len(input)))
@@ -201,14 +208,57 @@ for tile_input in input:
     new_tile = Tile(tile_id, tile_input)
     tiles_dict[tile_id] = new_tile
 
+solutions: [Image] = []
+solve_image(list(tiles_dict.values()), Image(N), solutions)
+solution_0: Image = solutions[0]
 
-def z1(tiles: [Tile], side_len: int):
-    solutions: [Image] = []
-    solve_image(tiles, Image(side_len), solutions)
-    sol_1: Image = solutions[0]
-    corners_ids = list(map(lambda t: t.tid, sol_1.corners()))
+
+def z1(corner_tiles: [Tile]):
+    corners_ids = list(map(lambda t: t.tid, corner_tiles))
     return corners_ids[0] * corners_ids[1] * corners_ids[2] * corners_ids[3]
 
 
-print("Part One : " + str(z1(list(tiles_dict.values()), N)))
-print("Part Two : " + str(None))
+def z2(solution: Image, monster):
+    monster_rows, monster_cols = len(monster), len(monster[0])
+    monster_tuples = []
+    for row, monster_line in enumerate(MONSTER):
+        for col, letter in enumerate(monster_line):
+            if letter == '#':
+                monster_tuples.append((row, col))
+
+    solution.remove_tiles_borders()
+    big_tile = Tile(1, solution.with_removed_gaps())
+    big_tile_rows = len(big_tile.tile_data)
+    big_tile_cols = len(big_tile.tile_data[0])
+    all_hashtags = big_tile.count('#')
+
+    for i in range(8):
+        taken_tuples = []
+
+        for row, data_row in enumerate(big_tile.tile_data):
+            if row + monster_rows < big_tile_rows:
+                for col, data_col in enumerate(data_row):
+                    if col + monster_cols < big_tile_cols:
+                        m_slice = matrix_slice(row, row + monster_rows, col, col + monster_cols, big_tile.tile_data)
+                        x = list((map(lambda tup: m_slice[tup[0]][tup[1]], monster_tuples)))
+                        if x.count('.') == 0:
+                            taken_tuples += list(map(lambda tup: (row+tup[0], col+tup[1]), monster_tuples))
+        l = len(set(taken_tuples))
+        result = all_hashtags - l
+
+        if l > 0:
+            return result
+
+        if i == 4:
+            big_tile.flip()
+        else:
+            big_tile.rotate()
+    return None
+
+
+def matrix_slice(start_row, stop_row, start_col, stop_col, matrix):
+    return [matrix[i][start_col: stop_col] for i in range(start_row, stop_row)]
+
+
+print("Part One : " + str(z1(solution_0.corners())))
+print("Part Two : " + str(z2(solution_0, MONSTER)))
