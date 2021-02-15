@@ -1,4 +1,8 @@
-
+module.exports = {
+   getShipComputer: function() {
+      return ShipComputer;
+   }
+}
 
 class ShipComputer{
     constructor(program){
@@ -11,14 +15,36 @@ class ShipComputer{
         this.relativeBase = 0;
         this.inputs = [];
         this.outputs = [];
+        this.quietMode = false;
+    }
+
+    setQuietMode(quiet=true){
+        this.quietMode = quiet;
+    }
+
+    clearOutputs(){
+        this.outputs = [];
+    }
+
+    printOutputsFromAscii(){
+        console.log(this.outputs.map(x => String.fromCharCode(x)).join(''));
     }
 
     isFinished(){
         return this.getCurrentOperation() === 99;
     }
 
-    addInputs(inputs){
-        this.inputs = this.inputs.concat(...inputs);
+    addInputs(newInputs){
+        this.inputs = this.inputs.concat(...newInputs);
+    }
+
+    addInputsAsASCII(lines){
+        for(let line of lines){
+            for(let char of line){
+                this.addInputs([char.charCodeAt(0)])
+            }
+            this.addInputs(['\n'.charCodeAt(0)])
+        }
     }
 
     adjustRelativeBase(delta){
@@ -29,14 +55,14 @@ class ShipComputer{
         const prompt = require('prompt-sync')();
         const input = this.inputs.length > 0 ? this.inputs.splice(0, 1)[0] : parseInt(prompt('Input: '), 10);
         this.storeValueAt(param1, input, mode);
-        this.instructionPointer += 2;
     }
 
     output(param, mode){
         let val1 = this.getValueFrom(param, mode);
-        console.log('Output: ' + val1);
         this.outputs.push(val1);
-        this.instructionPointer += 2;
+        if(this.quietMode === false){
+            console.log(`Output ${this.outputs.length - 1}: ` + val1);
+        }
     }
 
     getFromMemory(address){
@@ -70,16 +96,14 @@ class ShipComputer{
     add(params, modes, resultPointer){
         params = params.map((param, i) => this.getValueFrom(param, modes[i]));
         this.storeValueAt(resultPointer, params[0] + params[1], modes[2]);
-        this.instructionPointer += 4;
     }
 
     mul(params, modes, resultPointer){
         params = params.map((param, i) => this.getValueFrom(param, modes[i]));
         this.storeValueAt(resultPointer, params[0] * params[1], modes[2]);
-        this.instructionPointer += 4;
     }
 
-    run(stopAfterOutput=false){
+    run(stopWhenInputNeeded=false){
         function fillModes(modes, wantedLength){
             while (modes.length < wantedLength){
                 modes.push(0);
@@ -89,7 +113,7 @@ class ShipComputer{
         let stop = false;
         let currentOperation = this.getCurrentOperation();
         let opCode = currentOperation % 100;
-        while((opCode !== 99) && (stop === false)){
+        while((!this.isFinished()) && (stop === false)){
             let modes = currentOperation.toString().slice(0, currentOperation.toString().length - 2).split('');
             modes.reverse();
             modes = modes.map(x => parseInt(x, 10));
@@ -98,26 +122,33 @@ class ShipComputer{
                     let params = [this.instructionPointer + 1, this.instructionPointer + 2];
                     modes = fillModes(modes, params.length);
                     this.add(params, modes, this.instructionPointer + 3);
+                    this.instructionPointer += 4;
                     break;
                 }
                 case 2: {
                     let params = [this.instructionPointer + 1, this.instructionPointer + 2];
                     modes = fillModes(modes, params.length);
                     this.mul(params, modes, this.instructionPointer + 3);
+                    this.instructionPointer += 4;
                     break;
                 }
                 case 3: {
-                    let params = [this.instructionPointer + 1];
-                    let mode = fillModes(modes, params.length)[0];
-                    this.readInput(this.instructionPointer + 1, mode);
-                    break;
+                    if(stopWhenInputNeeded && (this.inputs.length === 0)){
+                        stop=true;
+                        break;
+                    } else{
+                        let params = [this.instructionPointer + 1];
+                        let mode = fillModes(modes, params.length)[0];
+                        this.readInput(this.instructionPointer + 1, mode);
+                        this.instructionPointer += 2;
+                        break;
+                    }
+
                 }
                 case 4: {
                     let mode = fillModes(modes, 1)[0];
                     this.output(this.instructionPointer + 1, mode);
-                    if(stopAfterOutput){
-                        stop=true;
-                    }
+                    this.instructionPointer += 2;
                     break;
                 }
                 case 5: {
@@ -183,5 +214,3 @@ class ShipComputer{
         }
     }
 }
-
-let computer = new ShipComputer();
