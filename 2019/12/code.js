@@ -42,6 +42,14 @@ class SpaceSystem{
         }
     }
 
+    velocityVector(axis){
+        return this.moons.map(moon => moon.velocity[axis]);
+    }
+
+    positionVector(axis){
+        return this.moons.map(moon => moon.position[axis]);
+    }
+
 }
 
 class Moon{
@@ -71,6 +79,21 @@ class Moon{
     }
 }
 
+function gcd(a, b){
+    while(b){
+        [a, b] = [b, a % b];
+    }
+    return a
+}
+
+function lcm(values){
+    function lcmPair(a, b){
+        let gcdResult = gcd(a, b);
+        return (Math.min(a,b) / gcdResult) * Math.max(a, b);
+    }
+    return values.reduce((a,b) => lcmPair(a,b));
+
+}
 
 function z1(input){
     let moons = input.map(x => new Moon(x));
@@ -81,6 +104,30 @@ function z1(input){
     return spaceSystem.totalSystemEnergy()
 }
 
+function z2(input){
+    let moons = input.map(x => new Moon(x));
+    let spaceSystem = new SpaceSystem(moons);
+    let initialPositions = spaceSystem.moons.map(moon => moon.position).map(x => x.slice());
+    let initialVelocities = spaceSystem.moons.map(moon => moon.velocity).map(x => x.slice());
+    let counter = 0;
+    let velocityPeriods = [0,0,0];
+    let positionPeriods = [0,0,0];
+    while(velocityPeriods.includes(0) || positionPeriods.includes(0)){
+        spaceSystem.timeStep();
+        counter++;
+        for(let axis of [0,1,2]) {
+            if ((spaceSystem.velocityVector(axis).toString() === initialVelocities.map(p => p[axis]).toString())
+                && (spaceSystem.positionVector(axis).toString() === initialPositions.map(p => p[axis]).toString())) {
+                if (velocityPeriods[axis] === 0 || positionPeriods[axis] === 0) {
+                    velocityPeriods[axis] = counter;
+                    positionPeriods[axis] = counter;
+                }
+            }
+        }
+    }
+    return lcm([...positionPeriods]);
 
+}
 
 console.log(z1(input));
+console.log(z2(input));
