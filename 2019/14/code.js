@@ -61,12 +61,63 @@ class SupplyStorage{
             let reactionResult = reactionElements[1];
             let reactionIngredients = reactionElements[0];
             if (!strict || this.possibleToResolve(reactions, reactionResult[0])){
+                let times = strict ? Math.floor(this.storage.get(reactionResult[0]) / reactionResult[1]) : 1;
                 for (let ingredient of reactionIngredients){
-                    this.addToStorage(ingredient[0], ingredient[1]);
+                    this.addToStorage(ingredient[0], times * ingredient[1]);
                 }
-                this.removeFromStorage(toResolve, reactionResult[1]);
+                this.removeFromStorage(toResolve, times * reactionResult[1]);
             }
         }
+    }
+
+    reduceReactions(reactions){
+        function copyReaction(reaction){
+            let [products, result] = reaction;
+            let copyProducts = [];
+            let copyResult = [...result];
+            for(let product of products){
+                copyProducts.push([...product]);
+            }
+            return [copyProducts, copyResult];
+        }
+
+        let newReactions = new Map();
+        let reactionsIngredientChemicals = this.allIngredientsNames(reactions);
+
+        for(let [reactionProduct, reaction] of reactions){
+            if (this.contains(reactionProduct) || reactionsIngredientChemicals.includes(reactionProduct)){
+                newReactions.set(reactionProduct, copyReaction(reaction));
+            }
+        }
+        return newReactions;
+    }
+
+    resolveOnlyIfItsOnlyOption(reactions){
+        // if its no other way to get chemical,
+        // you should resolve it
+        let allReactionsIngredients = this.allIngredientsNames(reactions);
+        while (true){
+            let changed = false;
+            for (let [chemical, amount] of this.storage) {
+                if (allReactionsIngredients.filter(x => x === chemical).length === 0){
+                    this.resolve(reactions, chemical, false);
+                    changed = true;
+                }
+            }
+            if(!changed){
+                break;
+            }
+        }
+    }
+
+    allIngredientsNames(reactions){
+        let list = [];
+        for(let [key, value] of reactions){
+            for(let ingredientReaction of value[0]){
+                list.push(ingredientReaction[0])
+            }
+        }
+        return list;
     }
 
     resolveRecursivelyWhatPossible(reactions){
@@ -100,137 +151,54 @@ class SupplyStorage{
         return newSupplyStorage;
     }
 
-    numberOfOres(){
-        if(this.storage.has('ORE')){
-            return this.storage.get('ORE');
-        }
-        return 0;
-
-    }
-
-    equals(supplyStorage){
-        if(supplyStorage.storage.size !== this.storage.size){
-            return false;
-        }
-        for(let [key, value] of this.storage){
-            if(supplyStorage.storage.has(key)){
-                if(supplyStorage.storage.get(key) !== this.storage.get(key)){
-                    return false;
-                }
-            } else{
-                return false;
-            }
-        }
-        return true;
-    }
-
     isResolved(){
         return (this.storage.size === 1 && this.storage.has('ORE'));
     }
 }
 
-function minOres(supplyStorages){
-    let m = supplyStorages[0];
-    for (let i = 1; i < supplyStorages.length; i++){
-        if (supplyStorages[i].storage.get('ORE') < m.storage.get('ORE')){
-            m = supplyStorages[i];
-        }
-    }
-    return m;
-}
-
-function greedy(reactions, supplyStorage){
-    while(!supplyStorage.isResolved()){
-        // first resolve what possible
-        supplyStorage.resolveRecursivelyWhatPossible(reactions);
-        // if nothing possible in strict try with borrowing
-        if(!supplyStorage.isResolved())
-        {
-            let storages = [];
-            for (let [chemical, amount] of supplyStorage.storage) {
-                if (chemical !== 'ORE') {
-                    let copy = supplyStorage.copy();
-                    copy.resolve(reactions, chemical, false);
-                    copy.resolveRecursivelyWhatPossible(reactions);
-                    storages.push(copy);
-                }
-            }
-            supplyStorage = minOres(storages);
-        } else {
-            return supplyStorage;
-        }
-
-    }
-    return supplyStorage
-}
-
-function backtracking(reactions, supplyStorages, minSolution){
-    while(true){
-        let newSupplyStorages = [];
-        for (let supplyStorage of supplyStorages){
-            if(supplyStorage.numberOfOres() > minSolution.numberOfOres()){
-                continue;
-            }
-            supplyStorage.resolveRecursivelyWhatPossible(reactions);
-            if(supplyStorage.isResolved() === true){
-                if(supplyStorage.storage.get('ORE') < minSolution.storage.get('ORE')){
-                    minSolution = supplyStorage;
-                }
-            }
-            else{
-                for (let [chemical, amount] of supplyStorage.storage) {
-                    if (chemical !== 'ORE') {
-                        let copy = supplyStorage.copy();
-                        copy.resolve(reactions, chemical, false);
-                        if(!(supplyStorages.some(x => copy.equals(x)))){
-                            newSupplyStorages.push(copy);
-                        }
-
-                    }
-                }
-            }
-        }
-        supplyStorages = newSupplyStorages;
-
-        if(supplyStorages.length === 1 && supplyStorages[0].isResolved()){
-            if(supplyStorages[0].storage.get('ORE') < minSolution.storage.get('ORE')){
-                minSolution = supplyStorages[0];
-            }
-            return minSolution;
-        } else if(supplyStorages.length === 0){
-            return minSolution;
-        }
-        console.log(supplyStorages.length)
-    }
-}
-
-function backtracking2(reactions, chemical, supplyStorage, minSolution){
-    supplyStorage.resolve(reactions, chemical, false);
-    supplyStorage.resolveRecursivelyWhatPossible(reactions);
-    if(supplyStorage.isResolved() === true){
-        if(supplyStorage.storage.get('ORE') < minSolution.storage.get('ORE')){
-            minSolution = supplyStorage;
-            console.log(minSolution);
-        }
-    } else {
-        for(let [ch, amount] of supplyStorage.storage) {
-            if (ch !== 'ORE') {
-                let copy = supplyStorage.copy();
-                backtracking2(reactions, ch, copy, minSolution);
-            }
-        }
-    }
-    return minSolution
-}
-
 function z1(){
+    function mid(lo, hi){
+        return Math.floor((hi - lo)/2) + lo;
+    }
     let reactions = processData(dataSplit);
-    let greedySolution = new SupplyStorage();
-    greedySolution.addToStorage('FUEL', 1);
-    //greedySolution = greedy(reactions, greedySolution);
-    greedySolution.resolveRecursivelyWhatPossible(reactions);
-    console.log(greedySolution);
+    let supplyStorage1 = new SupplyStorage();
+    supplyStorage1.addToStorage('FUEL', 1);
+
+    while(!supplyStorage1.isResolved()){
+        supplyStorage1.resolveRecursivelyWhatPossible(reactions);
+        reactions = supplyStorage1.reduceReactions(reactions);
+        supplyStorage1.resolveOnlyIfItsOnlyOption(reactions);
+    }
+
+    let orePerFuel = supplyStorage1.storage.get('ORE');
+    let maxFuelProducedLo = Math.floor((1000000000000 / orePerFuel));
+    let maxFuelProducedHi = Math.floor((1000000000000 / orePerFuel)) * 2;
+    let maxFuelProducedMid = mid(maxFuelProducedLo, maxFuelProducedHi);
+
+    while(maxFuelProducedHi > maxFuelProducedMid && maxFuelProducedLo < maxFuelProducedMid) {
+        let supplyStorage2 = new SupplyStorage();
+        supplyStorage2.addToStorage('FUEL', maxFuelProducedMid);
+        let reactions = processData(dataSplit);
+        while (!supplyStorage2.isResolved()) {
+            supplyStorage2.resolveRecursivelyWhatPossible(reactions);
+            reactions = supplyStorage2.reduceReactions(reactions);
+            supplyStorage2.resolveOnlyIfItsOnlyOption(reactions);
+        }
+
+        let ores = supplyStorage2.storage.get('ORE');
+        if (ores > 1000000000000) {
+            maxFuelProducedHi = maxFuelProducedMid;
+            maxFuelProducedMid = mid(maxFuelProducedLo, maxFuelProducedHi);
+        } else {
+            maxFuelProducedLo = maxFuelProducedMid;
+            maxFuelProducedMid = mid(maxFuelProducedLo, maxFuelProducedHi);
+        }
+
+    }
+    console.log('z1:', supplyStorage1);
+    console.log('z2:', maxFuelProducedMid);
 }
+
 z1();
 
 
