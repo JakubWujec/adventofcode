@@ -80,4 +80,4 @@ let tasks = () => {
 
 
 
-task1();
+tasks();
