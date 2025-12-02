@@ -1,4 +1,5 @@
-from typing import List
+from typing import List, Protocol
+import re
 
 
 def get_input_data(filename="input.txt"):
@@ -7,50 +8,49 @@ def get_input_data(filename="input.txt"):
         return input
 
 
-def task1(input_data):
-    data = [[int(val) for val in row.split("-")] for row in input_data.split(",")]
-    ans = 0
-    for [start, end] in data:
-        ans += sum_invalid_ids(start, end)
-    return ans
+class Validator(Protocol):
+    def is_valid(self, num: int) -> bool: ...
 
 
-def is_valid_id(candidate_id: int):
-    text = str(candidate_id)
-    n = len(text)
-    if n % 2 == 1:
+class DoubledPatternValidator:
+    def is_valid(self, num: int):
+        text = str(num)
+        n = len(text)
+        if n % 2 == 1:
+            return True
+        half_n = n // 2
+
+        if text[:half_n] == text[half_n:]:
+            return False
         return True
-    half_n = n // 2
-
-    if text[:half_n] == text[half_n:]:
-        return False
-    return True
 
 
-def sum_invalid_ids(start: int, end: int):
-    id_sum = 0
-    for i in range(start, end + 1):
-        if not is_valid_id(i):
-            id_sum += i
-    return id_sum
+class RepeatedPatternValidator:
+    def is_valid(self, num: int):
+        text = str(num)
+        n = len(text)
+
+        for pat_len in range(1, n):
+            pattern = re.compile(f"^({text[:pat_len]})+$")
+            if pattern.fullmatch(text):
+                return False
+        return True
 
 
-# def count_invalid_ids(start: int, end: int):
-#     if end > start:
-#         return 0
-
-#     s = str(start)
-#     if len(s) % 2 == 1:
-#         return count_invalid_ids(10 ** (len(s) + 1), end)
-
-#     n = len(s) // 2
+def task(input_data, validator: Validator):
+    data = [[int(val) for val in row.split("-")] for row in input_data.split(",")]
+    return sum(sum_invalid_ids(validator, start, end) for [start, end] in data)
 
 
-#     ans = 0
-
-#     curr = s[:n]
+def sum_invalid_ids(validator: Validator, start: int, end: int):
+    return sum(i for i in range(start, end + 1) if not validator.is_valid(i))
 
 
 if __name__ == "__main__":
-    answer1 = task1(get_input_data())
+    input_data = get_input_data()
+
+    answer1 = task(input_data, DoubledPatternValidator())
     print(f"Answer1: {answer1}")
+
+    answer2 = task(input_data, RepeatedPatternValidator())
+    print(f"Answer2: {answer2}")
