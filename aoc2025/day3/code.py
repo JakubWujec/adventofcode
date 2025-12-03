@@ -1,6 +1,4 @@
 import heapq
-from typing import List, Protocol, Tuple
-import re
 
 
 def get_input_data(filename="input.txt"):
@@ -9,40 +7,32 @@ def get_input_data(filename="input.txt"):
         return input
 
 
-# def calculate_bank_joltage(bank: str) -> int:
-#     first_digit = "0"
-#     first_digit_index = -1
-
-#     for i in range(len(bank) - 1):
-#         digit = bank[i]
-#         if digit > first_digit:
-#             first_digit = digit
-#             first_digit_index = i
-
-#     second_digit = "0"
-#     for i in range(first_digit_index + 1, len(bank)):
-#         digit = bank[i]
-#         if digit > second_digit:
-#             second_digit = digit
-
-#     return 10 * int(first_digit) + int(second_digit)
-
-
 def calculate_bank_joltage(bank: str, batteries: int):
-    heap = []
     n = len(bank)
-    first = "0"
+    left_boundary = 0
+    batteries_left = batteries
+    heap = []
 
-    for i in range(n - 1, -1, -1):
-        if len(heap) < batteries or bank[i] >= first:
-            heapq.heappush(heap, (bank[i], i))
-            first = bank[i]
+    for idx, value in enumerate(bank[: n - batteries + 1]):
+        heap.append((-int(value), idx))
 
-        while len(heap) > batteries:
-            heapq.heappop(heap)
-    heap.sort(key=lambda x: x[1])
-    s = "".join([item[0] for item in heap])
-    return int(s)
+    heapq.heapify(heap)
+    answer = []
+
+    while batteries_left > 0:
+        value, idx = heapq.heappop(heap)
+        value = -value
+
+        if idx < left_boundary:
+            continue
+
+        answer.append(value)
+        batteries_left -= 1
+        if batteries_left:
+            heapq.heappush(heap, (-int(bank[-batteries_left]), n - batteries_left))
+
+        left_boundary = idx + 1
+    return int("".join([str(num) for num in answer]))
 
 
 def task1(input_data: str):
@@ -61,3 +51,6 @@ if __name__ == "__main__":
     input_data = get_input_data()
     answer1 = task1(input_data)
     print(f"Answer1: {answer1}")
+
+    answer2 = task2(input_data)
+    print(f"Answer2: {answer2}")

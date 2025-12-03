@@ -42,6 +42,10 @@ class TestExampleOne:
     def test_calculate_bank_joltage2(self, bank, expected_joltage):
         assert calculate_bank_joltage(bank, 12) == expected_joltage
 
+    def test_calculate_bank_joltage2_is_not_too_low(self):
+        input_data = get_input_data("input.txt")
+        assert task2(input_data) > 169276109288631
+
 
 if __name__ == "__main__":
     unittest.main()
