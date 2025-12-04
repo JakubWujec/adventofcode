@@ -7,22 +7,36 @@ def get_input_data(filename="input.txt"):
         return input
 
 
-def task1(input_data: str):
+def prepare_grid(input_data: str):
     grid = input_data.split("\n")
     while grid[-1] == "":
         grid.pop()
-    answer = 0
+    grid = [list(row) for row in grid]
+    return grid
 
-    for r in range(len(grid)):
-        for c in range(len(grid[r])):
-            if grid[r][c] == "@":
-                adj = get_8_adjacement(grid, r, c)
-                if adj.count("@") < 4:
-                    answer += 1
+
+def task1(input_data: str):
+    grid = prepare_grid(input_data)
+    answer = remove_rolls(grid)
+
     return answer
 
 
-def get_8_adjacement(grid: List[str], row: int, column: int):
+def task2(input_data: str):
+    grid = prepare_grid(input_data)
+    answer = 0
+
+    removed = remove_rolls(grid)
+    answer += removed
+
+    while removed > 0:
+        removed = remove_rolls(grid)
+        answer += removed
+
+    return answer
+
+
+def get_8_adjacement(grid, row: int, column: int):
     rows = len(grid)
     columns = len(grid[0])
 
@@ -39,8 +53,22 @@ def get_8_adjacement(grid: List[str], row: int, column: int):
     return result
 
 
-def task2(input_data: str):
-    return 0
+def copy_grid(grid: List[List["str"]]):
+    return [row.copy() for row in grid]
+
+
+def remove_rolls(grid):
+    removed = 0
+    origin = copy_grid(grid)
+
+    for r in range(len(grid)):
+        for c in range(len(grid[r])):
+            if origin[r][c] == "@":
+                adj = get_8_adjacement(origin, r, c)
+                if adj.count("@") < 4:
+                    grid[r][c] = "x"
+                    removed += 1
+    return removed
 
 
 if __name__ == "__main__":

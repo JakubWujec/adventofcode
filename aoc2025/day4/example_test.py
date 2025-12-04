@@ -17,6 +17,9 @@ class TestExampleOne:
     def test_first_task(self):
         assert task1(self.input_data) == 13
 
+    def test_second_task(self):
+        assert task2(self.input_data) == 43
+
     # @pytest.mark.parametrize(
     #     "bank,expected_joltage",
     #     [
