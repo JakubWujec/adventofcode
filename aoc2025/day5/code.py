@@ -54,7 +54,7 @@ def binary_check(ranges, check):
 def task1(input_data: str):
     ranges, ids = process_input(input_data)
     answer = 0
-    print(ranges)
+
     for ingredient_id in ids:
         if binary_check(ranges, ingredient_id):
             print(ingredient_id)
@@ -64,7 +64,11 @@ def task1(input_data: str):
 
 
 def task2(input_data: str):
-    return 0
+    ranges, ids = process_input(input_data)
+    answer = 0
+    for [start, end] in ranges:
+        answer += end - start + 1
+    return answer
 
 
 if __name__ == "__main__":
