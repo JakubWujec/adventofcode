@@ -17,8 +17,8 @@ class TestExampleOne:
     def test_first_task(self):
         assert task1(self.input_data) == 4277556
 
-    # def test_second_task(self):
-    #     assert task2(self.input_data) == 14
+    def test_second_task(self):
+        assert task2(self.input_data) == 3263827
 
 
 if __name__ == "__main__":

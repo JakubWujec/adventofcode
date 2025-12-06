@@ -12,16 +12,17 @@ def process_input(input_data: str):
     lines = input_data.split("\n")
     result = [line.split() for line in lines if line]
     operation_lines = result.pop()
-    number_lines = [list(map(int, row)) for row in result]
-    return (number_lines, operation_lines)
+
+    return (result, operation_lines)
 
 
 def task1(input_data: str):
     lines, operations = process_input(input_data)
-    lines_T = transpose(lines)
+    number_lines = [list(map(int, row)) for row in lines]
+    number_lines_T = transpose(number_lines)
 
     return sum(
-        calculate_line(line, operations[idx]) for idx, line in enumerate(lines_T)
+        calculate_line(line, operations[idx]) for idx, line in enumerate(number_lines_T)
     )
 
 
@@ -38,11 +39,30 @@ def transpose(arr):
 
 
 def task2(input_data: str):
-    return 0
+    data = input_data.split("\n")
+    data = transpose(input_data.split("\n"))
+    answer = 0
+    groups = []
+    curr_group = []
+    for arr in data:
+        if len(arr) == arr.count(" "):
+            groups.append(curr_group)
+            curr_group = []
+        else:
+            curr_group.append(arr)
+    groups.append(curr_group)
+
+    for group in groups:
+        operation = group[0].pop()
+        answer += calculate_line([int("".join(arr)) for arr in group], operation)
+        print(group)
+
+    return answer
 
 
 if __name__ == "__main__":
-    input_data = get_input_data("test_input.txt")
+    input_data = get_input_data()
+    # print(input_data)
 
     answer1 = task1(input_data)
     print(f"Answer1: {answer1}")
