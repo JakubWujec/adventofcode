@@ -29,7 +29,6 @@ class TestInput2:
         dots_count = 0
         for k, v in outside_dots.items():
             dots_count += len(set(v))
-        print(outside_dots)
         assert dots_count == 24
 
 
